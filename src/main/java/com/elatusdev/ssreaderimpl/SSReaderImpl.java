@@ -5,6 +5,7 @@
  */
 package com.elatusdev.ssreaderimpl;
 
+import com.elatusdev.model.ReadResult;
 import com.elatusdev.ssreader.SSReader;
 import java.io.File;
 import java.io.FileInputStream;
