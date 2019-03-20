@@ -14,7 +14,7 @@ import com.elatusdev.reactivo.streamImpl.Subscriber;
  * @author root
  */
 public interface Notifier extends HttpGETResponseListener,
-                                  HttpPUDResponseListener,
+                                  HttpPPDResponseListener,
                                   HttpMethods{
     public void start();
     

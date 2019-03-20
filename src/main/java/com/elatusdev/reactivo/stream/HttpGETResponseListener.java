@@ -16,7 +16,7 @@ public interface HttpGETResponseListener {
     
     public void onGETResponse(HttpEvent<HttpRequestGET> evt);
     
-    public void onGETError(Class<?> type, String error);
+    public void onGETError(Class<?> type, int status);
         
 }
 

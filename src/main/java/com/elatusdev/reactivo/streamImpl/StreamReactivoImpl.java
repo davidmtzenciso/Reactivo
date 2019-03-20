@@ -16,9 +16,9 @@ import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.elatusdev.reactivo.httpcliente.HttpHandler;
-import com.elatusdev.reactivo.httpcliente.HttpPUDRequestListener;
 import com.elatusdev.reactivo.httpclienteImpl.HttpEvent;
-import com.elatusdev.reactivo.httpclienteImpl.HttpRequestPUD;
+import com.elatusdev.reactivo.httpclienteImpl.HttpRequestPPD;
+import com.elatusdev.reactivo.httpcliente.HttpPPDRequestListener;
 
 /**
  *
@@ -31,7 +31,7 @@ public class StreamReactivoImpl extends Thread implements StreamReactivo{
         notifier.start();
         httpHandler = new HttpHandlerImpl();
         httpHandler.setGETEventListener(notifier);       
-        httpHandler.setPUDEventListener(notifier);
+        httpHandler.setPPDEventListener(notifier);
         getRequestListener = httpHandler;
         pudRequestListener = httpHandler;
     }
@@ -39,7 +39,7 @@ public class StreamReactivoImpl extends Thread implements StreamReactivo{
     @Override
     public StreamReactivo subscribePOST(String url, Object obj){
         subscriber = new Subscriber(obj.getClass());
-        pendingPUDRequest = new HttpRequestPUD(url,POST,obj,null);
+        pendingPUDRequest = new HttpRequestPPD(url,POST,obj,null);
         return this;
     }
     
@@ -47,7 +47,7 @@ public class StreamReactivoImpl extends Thread implements StreamReactivo{
     public StreamReactivo subscribePOST(String url, Object obj, 
                                         Consumer<Integer> progressUpdater){
         subscriber = new Subscriber(obj.getClass());
-        pendingPUDRequest = new HttpRequestPUD(url,POST,obj,progressUpdater);
+        pendingPUDRequest = new HttpRequestPPD(url,POST,obj,progressUpdater);
         return this;
     }
     
@@ -96,7 +96,7 @@ public class StreamReactivoImpl extends Thread implements StreamReactivo{
         if(pendingGETRequest != null)
             sendData(subscriber, pendingGETRequest);
         else if(pendingPUDRequest != null)
-            pudRequestListener.onPUDRequestEvent(new HttpEvent<>(this,pendingPUDRequest));
+            pudRequestListener.onPPDRequestEvent(new HttpEvent<>(this,pendingPUDRequest));
             
     }
     
@@ -152,11 +152,11 @@ public class StreamReactivoImpl extends Thread implements StreamReactivo{
 
     private Subscriber subscriber;
     private final Notifier notifier;
-    private HttpRequestPUD pendingPUDRequest;
+    private HttpRequestPPD pendingPUDRequest;
     private HttpRequestGET pendingGETRequest;
     private final HttpHandler httpHandler;
     private final HttpGETRequestListener getRequestListener;
-    private final HttpPUDRequestListener pudRequestListener;
+    private final HttpPPDRequestListener pudRequestListener;
     private static final Logger LOG = Logger.getLogger(StreamReactivo.class.getName());
 
 }

@@ -5,16 +5,16 @@
  */
 package com.elatusdev.reactivo.stream;
 
-import com.elatusdev.reactivo.httpclienteImpl.HttpRequestPUD;
+import com.elatusdev.reactivo.httpclienteImpl.HttpRequestPPD;
 import com.elatusdev.reactivo.httpclienteImpl.HttpEvent;
 
 /**
  *
  * @author root
  */
-public interface HttpPUDResponseListener {
+public interface HttpPPDResponseListener {
     
-    public void onPUDResponse(HttpEvent<HttpRequestPUD> evt);
+    public void onPPDResponse(HttpEvent<HttpRequestPPD> evt);
     
-    public void onPUDError(Class<?> cls, String error);
+    public void onPPDError(Class<?> cls, int status);
 }

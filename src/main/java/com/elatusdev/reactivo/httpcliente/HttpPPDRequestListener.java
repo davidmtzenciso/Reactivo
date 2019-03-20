@@ -6,13 +6,13 @@
 package com.elatusdev.reactivo.httpcliente;
 
 import com.elatusdev.reactivo.httpclienteImpl.HttpEvent;
-import com.elatusdev.reactivo.httpclienteImpl.HttpRequestPUD;
+import com.elatusdev.reactivo.httpclienteImpl.HttpRequestPPD;
 
 /**
  *
  * @author root
  */
-public interface HttpPUDRequestListener {
+public interface HttpPPDRequestListener {
     
-    public void onPUDRequestEvent(HttpEvent<HttpRequestPUD> request);
+    public void onPPDRequestEvent(HttpEvent<HttpRequestPPD> request);
 }

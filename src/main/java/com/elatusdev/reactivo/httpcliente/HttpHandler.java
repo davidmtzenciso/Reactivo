@@ -5,20 +5,18 @@
  */
 package com.elatusdev.reactivo.httpcliente;
 
-import com.elatusdev.reactivo.stream.HttpPUDResponseListener;
 import com.elatusdev.reactivo.stream.HttpGETResponseListener;
-import com.elatusdev.reactivo.httpclienteImpl.HttpRequestGET;
-import java.util.function.Consumer;
+import com.elatusdev.reactivo.stream.HttpPPDResponseListener;
 
 
 /**
  *
  * @author root
  */
-public interface HttpHandler extends HttpGETRequestListener, HttpPUDRequestListener {
+public interface HttpHandler extends HttpGETRequestListener, HttpPPDRequestListener {
     
     public void setGETEventListener(HttpGETResponseListener listener);
     
-    public void setPUDEventListener(HttpPUDResponseListener listener);
+    public void setPPDEventListener(HttpPPDResponseListener listener);
            
 }

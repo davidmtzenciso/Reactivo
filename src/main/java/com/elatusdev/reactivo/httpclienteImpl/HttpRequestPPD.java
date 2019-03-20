@@ -12,14 +12,14 @@ import org.apache.http.HttpResponse;
  *
  * @author root
  */
-public class HttpRequestPUD {
+public class HttpRequestPPD {
     private final String url;
     private final String method;
     private final Object element;
     private HttpResponse response;
     private final Consumer<Integer> progressUpdater;
     
-    public HttpRequestPUD(String url, String method,
+    public HttpRequestPPD(String url, String method,
                             Object element, Consumer<Integer> progressUpdater){
         this.url = url;
         this.method = method;
@@ -49,6 +49,10 @@ public class HttpRequestPUD {
 
     public Consumer<Integer> getProgressUpdater() {
         return progressUpdater;
+    }
+    
+    public boolean hasProgressUpdater(){
+        return progressUpdater != null;
     }
 
 }

@@ -9,7 +9,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.elatusdev.reactivo.httpclienteImpl.HttpRequestGET;
-import com.elatusdev.reactivo.httpclienteImpl.HttpRequestPUD;
+import com.elatusdev.reactivo.httpclienteImpl.HttpRequestPPD;
 import com.elatusdev.reactivo.httpclienteImpl.HttpEvent;
 import java.util.LinkedList;
 import java.util.List;
@@ -46,13 +46,13 @@ public class NotifierImpl extends Thread implements Notifier {
     }
     
     @Override
-    public void onGETError(Class<?> type, String error){
-        sendData(type, null, error);
+    public void onGETError(Class<?> type, int status){
+        sendData(type, null, Integer.toString(status));
     }
     
     @Override
-    public void onPUDError(Class<?> type, String error){
-        sendData(type, null, error);
+    public void onPPDError(Class<?> type, int status){
+        sendData(type, null, Integer.toString(status));
     }
     
     @Override
@@ -108,24 +108,43 @@ public class NotifierImpl extends Thread implements Notifier {
     }
     
     @Override
-    public void onPUDResponse(HttpEvent<HttpRequestPUD> evt) {
+    public void onPPDResponse(HttpEvent<HttpRequestPPD> evt) {
         Class<?> type;
         Object object;
         
-        LOG.info("pud response recived");
+        type = evt.getRequest().getElement().getClass();
+        object = evt.getRequest().getElement();
         switch (evt.getRequest().getMethod()) {
-            case POST:
-                LOG.info("POST recived");
-                type = evt.getRequest().getElement().getClass();
-                object = evt.getRequest().getElement();
-                if(this.isInLongTermCache(type)){
-                    this.longTermData.get(type).add(object);
-                }
-                else if(this.isInShortTermCache(type)){
-                    this.shortTermData.get(type).add(object);
-                }
+            case POST:                
+                saveObject(object, type);
                 break;
+            case PUT:
+                saveObject(object, type);
+                break;
+            case DELETE:
+                removeObject(object, type);
+                break;
+            default:
+                LOG.severe("Error on PPD response, http method no supported!");
         }
+    }
+    
+    private void removeObject(Object object, Class<?> type){
+       if(this.isInLongTermCache(type)){
+            this.longTermData.remove(type);
+        }
+        else if(this.isInShortTermCache(type)){
+            this.shortTermData.remove(type);
+        } 
+    }
+    
+    private void saveObject(Object object, Class<?> type){
+       if(this.isInLongTermCache(type)){
+            this.longTermData.get(type).add(object);
+        }
+        else if(this.isInShortTermCache(type)){
+            this.shortTermData.get(type).add(object);
+        } 
     }
     
     @SuppressWarnings("unchecked")

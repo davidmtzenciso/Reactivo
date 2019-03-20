@@ -7,7 +7,6 @@ package com.elatusdev.reactivo.httpclienteImpl;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.elatusdev.reactivo.stream.HttpPUDResponseListener;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -25,6 +24,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClientBuilder;
 import com.elatusdev.reactivo.stream.HttpGETResponseListener;
 import com.elatusdev.reactivo.httpcliente.HttpHandler;
+import com.elatusdev.reactivo.stream.HttpPPDResponseListener;
 
 /**
  *
@@ -36,46 +36,61 @@ public class HttpHandlerImpl extends Thread implements HttpHandler{
         mapper = new ObjectMapper();
         mapper.setSerializationInclusion(Include.NON_NULL);
         getListeners = new LinkedList<>();
-        pudListeners = new LinkedList<>();
-        REQUEST_SUCCESSFUL = "Información guardada!";
-        REQUEST_ERROR = new StringBuilder()
-                .append("Error de comunicación con el servidor")
-                .append("\nChecar Logs por mas información").toString();
+        ppdListeners = new LinkedList<>();
+        updateRate = 10;
+        waitRate = 200;
     }
     
     @Override
     public void onGETRequestEvent(HttpEvent<HttpRequestGET> evt){
-        this.enviarPeticionGET(evt.getRequest());
+        this.send(evt.getRequest());
     }
     
     @Override
-    public void onPUDRequestEvent(HttpEvent<HttpRequestPUD> evt){
-        this.sendPOST(evt.getRequest());
+    public void onPPDRequestEvent(HttpEvent<HttpRequestPPD> evt){
+        this.send(evt.getRequest());
     }
 
-    private void waitForPUDResponse(HttpRequestPUD request){
-        while(request.getResponse().getStatusLine() == null){}
-        if(request.getResponse().getStatusLine().getStatusCode() == 200){
+    private synchronized void waitForPPDResponse(HttpRequestPPD request){
+        int status;
+        
+        for(int i=0; request.getResponse().getStatusLine() == null; i+=updateRate){
+            try{
+                if(request.hasProgressUpdater())
+                    request.getProgressUpdater().accept(i);
+                this.wait(waitRate);
+            } catch(InterruptedException e){LOG.severe(e.getMessage());}
+        }
+        
+        status = request.getResponse().getStatusLine().getStatusCode();
+        if(status == 200){
             logSuccess(request.getElement().getClass().getSimpleName());
             sendSuccessMessage(request);
         }
         else{
             logError(request.getResponse());
-            sendErrorMessage(request);
+            sendErrorMessage(request, status);
         }
     }
     
-    private void waitForGETResponse(HttpRequestGET request){
-        for(int i=10;request.getResponse().getStatusLine() == null; i+=10){
-            if(request.hasProgressUpdater())
-                request.getProgressUpdater().accept(i);
+    private synchronized void waitForGETResponse(HttpRequestGET request){
+        int status;
+        
+        for(int i=0; request.getResponse().getStatusLine() == null; i+=updateRate){
+            try{
+                if(request.hasProgressUpdater())
+                    request.getProgressUpdater().accept(i);
+                this.wait(waitRate);
+            } catch(InterruptedException e){LOG.severe(e.getMessage());}
         }
-        if(request.getResponse().getStatusLine().getStatusCode() == 200){
+        
+        status = request.getResponse().getStatusLine().getStatusCode();
+        if(status == 200){
             logSuccess(request.getType().getSimpleName());
             sendSuccessMessage(request);
         }
         else{
-            sendErrorMessage(request);
+            sendErrorMessage(request, status);
             logError(request.getResponse());
         }
     }
@@ -101,35 +116,24 @@ public class HttpHandlerImpl extends Thread implements HttpHandler{
         }
     }
     
-    private void sendSuccessMessage(HttpRequestPUD petition){                        
-        pudListeners.forEach(l->
-                l.onPUDResponse(new HttpEvent<>(this, petition)));
+    private void sendSuccessMessage(HttpRequestPPD petition){                        
+        ppdListeners.forEach(l->
+                l.onPPDResponse(new HttpEvent<>(this, petition)));
     }
     
     private void sendSuccessMessage(HttpRequestGET petition){  
         getListeners.forEach(l->l.onGETResponse(new HttpEvent<>(this, petition)));
     }
     
-    private void sendErrorMessage(HttpRequestPUD request){
-        pudListeners.forEach(l->l.onPUDError(request.getElement().getClass(),
-                REQUEST_ERROR));
+    private void sendErrorMessage(HttpRequestPPD request, int status){
+        ppdListeners.forEach(l->l.onPPDError(request.getElement().getClass(), status));
     }
     
-    private void sendErrorMessage(HttpRequestGET petition) {
-        getListeners.forEach(l->l.onGETError(petition.getType(), REQUEST_ERROR));
+    private void sendErrorMessage(HttpRequestGET petition, int status) {
+        getListeners.forEach(l->l.onGETError(petition.getType(), status));
     }
-    
-    @Override
-    public void setGETEventListener(HttpGETResponseListener listener){
-        this.getListeners.add(listener);
-    }
-    
-    @Override
-    public void setPUDEventListener(HttpPUDResponseListener listener){
-        this.pudListeners.add(listener);
-    }
-   
-    private void sendPOST(HttpRequestPUD request) {
+       
+    private void send(HttpRequestPPD request) {
         HttpClient client;
         HttpPost post;
         String json;
@@ -141,14 +145,14 @@ public class HttpHandlerImpl extends Thread implements HttpHandler{
             post.setEntity(new StringEntity(json, "UTF-8"));
             post.setHeader("Content-type", "application/json;charset=UTF-8");
             request.setReponse(client.execute(post));
-            new Thread(()->waitForPUDResponse(request)).start();
+            new Thread(()->waitForPPDResponse(request)).start();
         }catch(IOException e){
             LOG.log(Level.SEVERE, "Error preparing POST, cause: {0}",e);
-            sendErrorMessage(request);
+            sendErrorMessage(request, 0);
         }
     }
     
-    private void enviarPeticionGET(HttpRequestGET request) {
+    private void send(HttpRequestGET request) {
         HttpClient cliente; 
         HttpGet method;
         
@@ -159,14 +163,25 @@ public class HttpHandlerImpl extends Thread implements HttpHandler{
             new Thread(()->waitForGETResponse(request)).start();
         }catch(IOException e){
             LOG.log(Level.SEVERE, "Error executing GET, cause: {0}",e.getMessage());
-            sendErrorMessage(request);
+            sendErrorMessage(request, 0);
         }
     }
     
+    @Override
+    public void setGETEventListener(HttpGETResponseListener listener){
+        this.getListeners.add(listener);
+    }
+    
+    @Override
+    public void setPPDEventListener(HttpPPDResponseListener listener){
+        this.ppdListeners.add(listener);
+    }
+
+    
+    private final int updateRate;
+    private final int waitRate;
     private final ObjectMapper mapper;
     private final List<HttpGETResponseListener> getListeners;
-    private final List<HttpPUDResponseListener> pudListeners;
-    private final String REQUEST_ERROR;
-    private final String REQUEST_SUCCESSFUL;
+    private final List<HttpPPDResponseListener> ppdListeners;
     private static final Logger LOG = Logger.getLogger(HttpHandler.class.getName());
 }
