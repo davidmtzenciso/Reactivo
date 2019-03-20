@@ -88,24 +88,24 @@ public class SSReaderImpl implements SSReader {
     }
     
     private Workbook createBook(){
-        Workbook libro;
-        Sheet hoja;
+        Workbook book;
+        Sheet sheet;
 
-        libro = new HSSFWorkbook();
+        book = new HSSFWorkbook();
         for(Map.Entry<String,Class<?>> entry : entities.keySet()){
-            hoja = libro.createSheet(entry.getKey());
-            createRow(hoja, 0, entities.get(entry));
+            sheet = book.createSheet(entry.getKey());
+            createRow(sheet, 0, entities.get(entry));
         }
-        return libro;
+        return book;
     }
     
-    private void createRow(Sheet hoja, int numFila ,Map<String,String> propiedades){
+    private void createRow(Sheet sheet, int rowNum ,Map<String,String> properties){
         Cell celda;
         Row fila;
         int i = 0;
         
-        fila = hoja.createRow(numFila);
-        for(String key : propiedades.keySet()){
+        fila = sheet.createRow(rowNum);
+        for(String key : properties.keySet()){
             celda = fila.createCell(i, CellType.STRING);
             celda.setCellValue(key);
             i++;
@@ -143,8 +143,8 @@ public class SSReaderImpl implements SSReader {
    
     @SuppressWarnings("unchecked")
     private List<Object> transformRows(Sheet sheet,
-                                            Map.Entry<String,Class<?>> entidad,
-                                            Map<String,String> propiedades)
+                                            Map.Entry<String,Class<?>> entity,
+                                            Map<String,String> properties)
                                             throws NoSuchElementException {
         List<String> identificadores;
         Iterator<Row> filas;
@@ -152,18 +152,18 @@ public class SSReaderImpl implements SSReader {
         
         sheetName = sheet.getSheetName();
         filas = sheet.rowIterator();
-        identificadores = transformToIdentifiers(sheetName,filas.next(),propiedades);
+        identificadores = transformToIdentifiers(sheetName,filas.next(),properties);
         if(identificadores == null){
             throw new NoSuchElementException("incomplete identifiers in sheet:"+sheetName);
         }
         else
-            return transformarFilasAObjetos(sheetName,entidad.getValue(),filas,
-                                                identificadores, propiedades);
+            return transformeRowsToObjects(sheetName,entity.getValue(),filas,
+                                                identificadores, properties);
     }
     
     @SuppressWarnings("unchecked")
-    private List<Object> transformarFilasAObjetos(String sheetName, Class<?> entity, Iterator<Row> rows, 
-                    List<String> identificadores, Map<String,String> propiedades)
+    private List<Object> transformeRowsToObjects(String sheetName, Class<?> entity, Iterator<Row> rows, 
+                    List<String> identifiers, Map<String,String> properties)
                     throws NoSuchElementException {
         List<String> results;
         List<Object> list;
@@ -173,14 +173,14 @@ public class SSReaderImpl implements SSReader {
         results = new ArrayList<>();
         for(i=1; rows.hasNext(); i++){
             try{
-                list.add(crearObjecto(identificadores,
-                                    propiedades,entity,
+                list.add(createObject(identifiers,
+                                    properties,entity,
                                     rows.next()));
-                results.add(new StringBuilder().append("Fila ")
-                                    .append(i).append(": aceptada").toString());
+                results.add(new StringBuilder().append("Row ")
+                                    .append(i).append(": accepted").toString());
             }catch(NullPointerException e){
-                results.add(new StringBuilder().append("Fila ")
-                                    .append(i).append(": rechazada, ").append(e.getMessage())
+                results.add(new StringBuilder().append("Row ")
+                                    .append(i).append(": rejected, ").append(e.getMessage())
                                     .toString());
             }
         }
@@ -192,73 +192,86 @@ public class SSReaderImpl implements SSReader {
             return list;
     }
     
-    private List<String> transformToIdentifiers(String sheetName, Row fila, Map<String,String> properties){
+    private List<String> transformToIdentifiers(String sheetName, Row row, Map<String,String> properties){
         List<String> identifiers;
         List<String> errors;
-        Iterator<Cell> celdas;
+        Iterator<Cell> cells;
         String value;
         
         errors = new ArrayList<>();
         identifiers = new ArrayList<>();
-        celdas = fila.cellIterator();
-        while(celdas.hasNext()){
-            value = formatter.formatCellValue(celdas.next());
+        cells = row.cellIterator();
+        while(cells.hasNext()){
+            value = formatter.formatCellValue(cells.next());
             if(properties.containsKey(value))
                 identifiers.add(value);
             else{
                 errors.add(new StringBuilder()
-                        .append("Valor no reconocido: ").append(value).toString());
+                        .append("Value not recognized: ").append(value).toString());
             }
         }
         formatErrors.put(sheetName, errors);
         return identifiers.size() == properties.size() ? identifiers : null;
     }
     
-    private Object crearObjecto(List<String> identificadores,Map<String,String> metodos,
-                                Class<?> tipo, Row fila) throws NullPointerException {
+    private Object createObject(List<String> identifiers, Map<String,String> methods,
+                                Class<?> type, Row row) throws NullPointerException {
         Object obj;
         
-        obj = createObj.apply(tipo);
-        for(int i=0; i<identificadores.size(); i++){
+        obj = createObj.apply(type);
+        for(int i=0; i<identifiers.size(); i++){
             try{
-                ejecutarMetodo(obj,metodos.get(identificadores.get(i)),
-                                formatter.formatCellValue(fila.getCell(i)));
+                executeMethod(obj,methods.get(identifiers.get(i)),
+                                formatter.formatCellValue(row.getCell(i)));
             }catch(NoSuchMethodException | IllegalAccessException |
                 InvocationTargetException | NoSuchFieldException e){
                 LOG.log(Level.SEVERE, "Error creating object class:{0}, cause:{1}",
-                        new Object[]{tipo.getSimpleName(), e});
-                throw new NullPointerException("Error inteno");
+                        new Object[]{type.getSimpleName(), e});
+                throw new NullPointerException("internal error");
             } catch(NumberFormatException ex){
                 throw new NullPointerException(new StringBuilder()
-                        .append("Error en celda con identificador: ")
-                        .append(identificadores.get(i))
-                        .append(", causa: ").append(ex.getMessage()).toString());
+                        .append("Error in cell with identifier: ")
+                        .append(identifiers.get(i))
+                        .append(", cause: ").append(ex.getMessage()).toString());
             }
         }
         return obj;
     }
     
-    private void ejecutarMetodo(Object target, String methodName, String valor)
+    private void executeMethod(Object target, String name, String value)
             throws NoSuchMethodException, IllegalAccessException,
                     InvocationTargetException,NumberFormatException,
                     NoSuchFieldException {
                     
-        Method metodo;
+        Method method;
         Field field;
-        Class<?> tipo;
+        Class<?> type;
         Class<?> clazz;
         String fieldName;
 
         clazz = target.getClass();
-        fieldName = formatName(methodName);
+        fieldName = formatName(name);
         field = findField(fieldName, clazz);
-        tipo = field.getType();
+        type = field.getType();
+        method = findMethod(name, type, clazz);
+        method.invoke(target, parseValue(type,value));
+    }
+    
+    private Method findMethod(String name, Class<?> type, Class<?> cls) 
+                                                    throws NoSuchMethodException{
+        Class<?> superCls;
+        
         try{
-            metodo = clazz.getMethod(methodName, tipo);
+            return cls.getDeclaredMethod(name, type);
         }catch(NoSuchMethodException e){
-            metodo = clazz.getSuperclass().getMethod(methodName, tipo);
+            superCls = cls.getSuperclass();
+            if(!superCls.equals(Object.class))
+                return findMethod(name, type, superCls);
+            else
+                throw new NoSuchMethodException(new StringBuilder().append("Method: ")
+                         .append(name).append(" not found in the class nor in any parent class")
+                         .toString());
         }
-        metodo.invoke(target, convertirValor(tipo,valor));
     }
     
     private Field findField(String fieldName, Class<?> cls) throws NoSuchFieldException{
@@ -271,7 +284,9 @@ public class SSReaderImpl implements SSReader {
             if(!superCls.equals(Object.class))
                 return findField(fieldName, superCls);
             throw
-                 new NoSuchFieldException("field: "+fieldName+" not found in the class nor in any parent class");
+                 new NoSuchFieldException(new StringBuilder().append("field: ")
+                         .append(fieldName).append(" not found in the class nor in any parent class")
+                         .toString());
         }
     }
     
@@ -280,21 +295,22 @@ public class SSReaderImpl implements SSReader {
         return String.valueOf(name.charAt(0)).toLowerCase() + name.substring(1, name.length());
     }
     
-    private Object convertirValor(Class<?> tipo, String valor) 
+    private Object parseValue(Class<?> type, String value) 
                                             throws NumberFormatException{
         try{
-        if(tipo.equals(Integer.class))
-            return Integer.parseInt(valor);
-        else if(tipo.equals(Double.class))
-            return Double.parseDouble(valor);
-        else if(tipo.equals(Long.class))
-            return Long.parseLong(valor);
-        else if(tipo.equals(Boolean.class))
-            return Integer.parseInt(valor) == 1;
+        if(type.equals(Integer.class))
+            return Integer.parseInt(value);
+        else if(type.equals(Double.class))
+            return Double.parseDouble(value);
+        else if(type.equals(Long.class))
+            return Long.parseLong(value);
+        else if(type.equals(Boolean.class))
+            return Integer.parseInt(value) == 1;
         else
-            return valor;
+            return value;
         }catch(NumberFormatException e){
-            throw new NumberFormatException("valor erroneo");
+            throw new NumberFormatException(new StringBuilder().append("type: ")
+                      .append(type.getSimpleName()).append(" not supported").toString());
         }
     }
     
