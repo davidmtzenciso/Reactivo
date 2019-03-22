@@ -7,8 +7,10 @@ package com.elatusdev.ssreaderimpl;
 
 import com.elatusdev.ssreader.ElatusSSReader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.function.Function;
 import org.apache.poi.ss.usermodel.Cell;
@@ -20,6 +22,10 @@ import org.apache.poi.ss.usermodel.Sheet;
  * @author root
  */
 public class ElatusSSReaderImpl extends AbstractSSReader implements ElatusSSReader {
+    
+    public ElatusSSReaderImpl(){
+        entities = new HashMap<>();
+    }
     
     @Override
     public List<List<Object>> transformSheet(Sheet sheet) throws NullPointerException{
@@ -94,6 +100,12 @@ public class ElatusSSReaderImpl extends AbstractSSReader implements ElatusSSRead
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
     
+     
+    public void addEntityMap(String label, Class<?> cls){
+        this.entities.put(label, cls);
+    }
+    
+    protected Map<String, Class<?>> entities;
     private Function<Object, List<String>> getLabels;
     private Function<Class<?>, Object> instanceCreator;
 }

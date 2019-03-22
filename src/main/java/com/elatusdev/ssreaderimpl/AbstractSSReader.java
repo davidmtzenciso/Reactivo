@@ -40,7 +40,6 @@ public abstract class AbstractSSReader {
         formatter = new DataFormatter();
         formatErrors = new HashMap<>();
         readResults = new HashMap<>();
-        entities = new HashMap<>();
         results = new ArrayList<>();
     }
     
@@ -114,15 +113,11 @@ public abstract class AbstractSSReader {
     public void setTransformeSheet(Consumer<Sheet> consumer){
         this.transformSheet = consumer;
     }
-    
-    public void addEntityMap(String label, Class<?> cls){
-        this.entities.put(label, cls);
-    }
+   
     
     protected List<String> results;
     private Consumer<Sheet> transformSheet;
     protected final DataFormatter formatter;
-    protected Map<String, Class<?>> entities;
     protected BiConsumer<Class<?>, List<Object>> process;
     protected final Map<String, List<String>> formatErrors;
     protected final Map<String,List<String>> readResults;

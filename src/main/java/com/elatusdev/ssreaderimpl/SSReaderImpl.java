@@ -26,11 +26,9 @@ import java.util.NoSuchElementException;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
-import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -40,13 +38,10 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
  *
  * @author root
  */
-public class SSReaderImpl implements SSReader {
+public class SSReaderImpl extends AbstractSSReader implements SSReader {
     
     public SSReaderImpl(){
-        formatter = new DataFormatter();
         entities = new HashMap<>();
-        formatErrors = new HashMap<>();
-        readResults = new HashMap<>();
     }
     
     private boolean createFile(Workbook book, String name){
@@ -165,12 +160,10 @@ public class SSReaderImpl implements SSReader {
     private List<Object> transformeRowsToObjects(String sheetName, Class<?> entity, Iterator<Row> rows, 
                     List<String> identifiers, Map<String,String> properties)
                     throws NoSuchElementException {
-        List<String> results;
         List<Object> list;
         int i;
         
         list = new ArrayList<>();
-        results = new ArrayList<>();
         for(i=1; rows.hasNext(); i++){
             try{
                 list.add(createObject(identifiers,
@@ -366,11 +359,6 @@ public class SSReaderImpl implements SSReader {
         this.process = process;
     }
     
-    private final DataFormatter formatter;
     private Function<Class<?>, Object> instanceCreator;
-    private BiConsumer<Class<?>, List<Object>> process;
-    private final Map<String, List<String>> formatErrors;
-    private final Map<String,List<String>> readResults;
     private final Map<Map.Entry<String,Class<?>>,Map<String, String>> entities;
-    private static final Logger LOG = Logger.getLogger(SSReader.class.getName());
 }
