@@ -218,7 +218,7 @@ public class SSReaderImpl implements SSReader {
                                 Class<?> type, Row row) throws NullPointerException {
         Object obj;
         
-        obj = createObj.apply(type);
+        obj = instanceCreator.apply(type);
         for(int i=0; i<identifiers.size(); i++){
             try{
                 executeMethod(obj,methods.get(identifiers.get(i)),
@@ -357,8 +357,8 @@ public class SSReaderImpl implements SSReader {
     }
     
     @Override
-    public void setObjCreator(Function<Class<?>,Object> createObj){
-        this.createObj = createObj;
+    public void setObjCreator(Function<Class<?>,Object> function){
+        this.instanceCreator = function;
     }
     
     @Override
@@ -367,7 +367,7 @@ public class SSReaderImpl implements SSReader {
     }
     
     private final DataFormatter formatter;
-    private Function<Class<?>, Object> createObj;
+    private Function<Class<?>, Object> instanceCreator;
     private BiConsumer<Class<?>, List<Object>> process;
     private final Map<String, List<String>> formatErrors;
     private final Map<String,List<String>> readResults;
