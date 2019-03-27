@@ -5,7 +5,7 @@
  */
 package com.elatusdev.ssreader;
 
-import com.elatusdev.model.ReadResult;
+import com.elatusdev.ssreader.model.ReadResult;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
