@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.elatusdev.reactivo.test;
+package com.elatusdev.reactivo.unit;
 
 import com.elatusdev.reactivo.stream.StreamReactivo;
 import com.fasterxml.jackson.core.type.TypeReference;
